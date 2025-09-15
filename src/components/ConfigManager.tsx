@@ -3,12 +3,12 @@ import { ConfigUpload } from './ConfigUpload';
 import { ConfigTabs } from './ConfigTabs';
 import { fetchFromIPNS } from '@/services/ipnsFetcher';
 import type { FetchedConfig } from '@/services/ipnsFetcher';
-import type { EnvironmentConfig, ConfigStructure } from '@/services/ipnsUpdater';
+import type { EnvironmentConfig, ConfigStructure, ConfigStructureWithEnv, ConfigStructureEnv } from '@/services/ipnsUpdater';
 
 export function ConfigManager() {
 
 
-  const [configEnvs, setConfigEnvs] = useState<ConfigStructure["__env"]>();
+  const [configEnvs, setConfigEnvs] = useState<ConfigStructureEnv["__env"]>();
   const [configStructure, setConfigStructure] = useState<ConfigStructure | null>(null);
   const [fetchedConfigs, setFetchedConfigs] = useState<Record<string, FetchedConfig>>({});
   const [currentIPFSHashes, setCurrentIPFSHashes] = useState<Record<string, string>>({});
@@ -17,18 +17,26 @@ export function ConfigManager() {
   const [activeTab, setActiveTab] = useState<string>('');
 
   // Handle config upload  
-  const handleConfigLoaded = (config: ConfigStructure) => {
+  const handleConfigLoaded = (config: ConfigStructureWithEnv) => {
 
-    setConfigEnvs(config.__env);
-    setConfigStructure(config);
+    setConfigEnvs(config.__env as ConfigStructureEnv["__env"]);
+
+    if (config.__env) {
+      setConfigEnvs(config.__env);
+
+    }
+
+    const { __env, ...configWithoutEnd } = config;
+
+    setConfigStructure(configWithoutEnd);
     setFetchedConfigs({});
     setCurrentIPFSHashes({}); // Clear hashes on new config load
     setError(null);
 
 
-    const envNames = Object.keys(config).map(name => name);
+    const envNames = Object.keys(configWithoutEnd).map(name => name);
     const firstEnv = envNames[0];
-
+console.log(firstEnv,"firstEnv")
     if (firstEnv) {
       setActiveTab(firstEnv);
     }

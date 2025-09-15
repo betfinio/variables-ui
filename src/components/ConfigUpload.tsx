@@ -8,10 +8,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Upload, Clipboard, FileText } from 'lucide-react';
 import { validateConfigStructure } from '@/services/ipnsFetcher';
-import type { ConfigStructure } from '@/services/ipnsUpdater';
+import type {  ConfigStructureWithEnv } from '@/services/ipnsUpdater';
 
 interface ConfigUploadProps {
-  onConfigLoaded: (config: ConfigStructure) => void;
+  onConfigLoaded: (config: ConfigStructureWithEnv) => void;
 }
 
 export function ConfigUpload({ onConfigLoaded }: ConfigUploadProps) {
@@ -25,7 +25,7 @@ export function ConfigUpload({ onConfigLoaded }: ConfigUploadProps) {
       throw new Error(validation.error);
     }
 
-    onConfigLoaded(parsed as ConfigStructure);
+    onConfigLoaded(parsed as ConfigStructureWithEnv);
     setRawJsonInput('');
     setError(null);
   };

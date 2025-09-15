@@ -31,11 +31,18 @@ export interface EnvironmentConfig {
   [key: string]: unknown;
 }
 
-export interface ConfigStructure {
+
+export type ConfigStructureWithEnv = ConfigStructureEnv & ConfigStructure;
+
+export interface ConfigStructureEnv {
   __env: {
     pinataJWT: string;
     [key: string]: unknown;
   };
+}
+
+export interface ConfigStructure {
+
   [environmentName: string]: EnvironmentConfig | {
     pinataJWT?: string;
     [key: string]: unknown;
