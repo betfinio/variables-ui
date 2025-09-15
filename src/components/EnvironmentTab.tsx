@@ -12,6 +12,7 @@ import { uploadConfigToIPFS, isPinataConfigured } from '@/services/ipfsUploader'
 import { uploadAndUpdateIPNS, type EnvironmentConfig, type ConfigStructure } from '@/services/ipnsUpdater';
 
 interface EnvironmentTabProps {
+  configEnvs: ConfigStructure["__env"];
   environmentName: string;
   ipnsPublicKey: string;
   environmentConfig: EnvironmentConfig;
@@ -27,6 +28,7 @@ interface EnvironmentTabProps {
 }
 
 export function EnvironmentTab({ 
+  configEnvs,
   environmentName, 
   ipnsPublicKey, 
   environmentConfig,
@@ -137,7 +139,7 @@ export function EnvironmentTab({
             configToUpload, 
             environmentName,
             environmentConfig,
-            configStructure,
+            configEnvs.pinataJWT,
             uploadConfigToIPFS
           );
       

@@ -32,14 +32,14 @@ export interface EnvironmentConfig {
 }
 
 export interface ConfigStructure {
-  _env?: {
-    pinataJWT?: string;
+  __env: {
+    pinataJWT: string;
     [key: string]: unknown;
   };
   [environmentName: string]: EnvironmentConfig | {
     pinataJWT?: string;
     [key: string]: unknown;
-  } | undefined;
+  };
 }
 
 // Constants for IPNS record creation (from ipns-publish.ts)
@@ -62,7 +62,7 @@ export async function resolveIPNSFromPublicKey(
 ): Promise<IPNSResolveResult> {
   try {
     console.log(`🔍 Resolving IPNS record from public key: ${ipnsPublicKey}`);
-    
+
     // Try multiple resolution methods using the public key directly
     // NOTE: Public key format (k51...) cannot be used with delegated routing API
     // Only use gateway-based resolution methods
@@ -73,7 +73,7 @@ export async function resolveIPNSFromPublicKey(
         const response = await fetch(`https://ipfs.io/ipns/${ipnsPublicKey}`, {
           method: 'HEAD'
         });
-        
+
         if (response.ok) {
           const ipfsRoots = response.headers.get('X-Ipfs-Roots');
           if (ipfsRoots) {
@@ -82,14 +82,14 @@ export async function resolveIPNSFromPublicKey(
         }
         throw new Error(`Gateway header resolution failed: ${response.status}`);
       },
-      
+
       // Method 2: Try Cloudflare IPFS gateway
       async () => {
         console.log(`🔄 Trying Cloudflare gateway resolution...`);
         const response = await fetch(`https://cloudflare-ipfs.com/ipns/${ipnsPublicKey}`, {
           method: 'HEAD'
         });
-        
+
         if (response.ok) {
           const ipfsRoots = response.headers.get('X-Ipfs-Roots');
           if (ipfsRoots) {
@@ -99,7 +99,7 @@ export async function resolveIPNSFromPublicKey(
         throw new Error(`Cloudflare gateway failed: ${response.status}`);
       }
     ];
-    
+
     // Try each method until one succeeds
     for (const method of resolutionMethods) {
       try {
@@ -115,13 +115,13 @@ export async function resolveIPNSFromPublicKey(
         continue;
       }
     }
-    
+
     return {
       success: false,
       ipnsName: ipnsPublicKey,
       error: 'All resolution methods failed'
     };
-    
+
   } catch (error) {
     console.error('❌ IPNS resolve failed:', error);
     return {
@@ -139,17 +139,17 @@ export async function resolveIPNSFromPrivateKey(
 ): Promise<IPNSResolveResult> {
   try {
     console.log(`🔍 Resolving IPNS record from private key`);
-    
+
     // Parse private key to get IPNS name
     const keypair = privateKeyFromProtobuf(uint8ArrayFromString(privateKeyBase64, 'base64'))
     if (keypair.type !== 'Ed25519') {
       throw new Error('Only libp2p Ed25519 keys are supported')
     }
-    
+
     // Get IPNS name
     const ipnsName = getIPNSNameFromKeypair(keypair)
     console.log(`📝 IPNS Name: ${ipnsName}`);
-    
+
     // Try multiple resolution methods
     const resolutionMethods = [
       // Method 1: Try fetching from gateway and check headers (most reliable)
@@ -158,7 +158,7 @@ export async function resolveIPNSFromPrivateKey(
         const response = await fetch(`https://ipfs.io/ipns/${ipnsName}`, {
           method: 'HEAD' // Just get headers, don't download content
         });
-        
+
         if (response.ok) {
           const ipfsRoots = response.headers.get('X-Ipfs-Roots');
           if (ipfsRoots) {
@@ -167,14 +167,14 @@ export async function resolveIPNSFromPrivateKey(
         }
         throw new Error(`Gateway header resolution failed: ${response.status}`);
       },
-      
+
       // Method 2: Try Cloudflare IPFS gateway
       async () => {
         console.log(`🔄 Trying Cloudflare gateway resolution...`);
         const response = await fetch(`https://cloudflare-ipfs.com/ipns/${ipnsName}`, {
           method: 'HEAD'
         });
-        
+
         if (response.ok) {
           const ipfsRoots = response.headers.get('X-Ipfs-Roots');
           if (ipfsRoots) {
@@ -184,7 +184,7 @@ export async function resolveIPNSFromPrivateKey(
         throw new Error(`Cloudflare gateway failed: ${response.status}`);
       }
     ];
-    
+
     // Try each method until one succeeds
     for (const method of resolutionMethods) {
       try {
@@ -200,13 +200,13 @@ export async function resolveIPNSFromPrivateKey(
         continue;
       }
     }
-    
+
     return {
       success: false,
       ipnsName,
       error: 'All resolution methods failed'
     };
-    
+
   } catch (error) {
     console.error('❌ IPNS resolve failed:', error);
     return {
@@ -220,61 +220,61 @@ export async function resolveIPNSFromPrivateKey(
  * Update IPNS record to point to new IPFS content
  */
 export async function updateIPNSRecord(
-  ipfsHash: string, 
+  ipfsHash: string,
   privateKeyBase64: string
 ): Promise<IPNSUpdateResult> {
   let helia: any
-  
+
   try {
     console.log(`🔄 Updating IPNS record for IPFS hash: ${ipfsHash}`);
-    
-  
-    
+
+
+
     // Create Helia instance (from ipns-publish.ts)
     helia = await createHeliaHTTP()
-  
-    
+
+
     // Parse private key (from ipns-publish.ts)
     const keypair = privateKeyFromProtobuf(uint8ArrayFromString(privateKeyBase64, 'base64'))
     if (keypair.type !== 'Ed25519') {
       throw new Error('Only libp2p Ed25519 keys are supported')
     }
-    
+
     // Parse CID (from ipns-publish.ts)
     const cid = CID.parse(ipfsHash)
-    
+
     // Get IPNS name (from ipns-publish.ts)
     const ipnsName = getIPNSNameFromKeypair(keypair)
-    
+
     console.log(`📝 IPNS Name: ${ipnsName}`);
-    
+
     // Use timestamp-based sequence number to ensure it's always incrementing (from ipns-publish.ts)
     const sequenceNumber = BigInt(Date.now())
-    
+
     const ttlMs = DEFAULT_TTL_MS
     const lifetime = DEFAULT_LIFETIME_MS
-    
+
     // Create IPNS record (from ipns-publish.ts)
     console.log(`🔄 Creating IPNS record...`);
     const record = await createIPNSRecord(keypair, cid, sequenceNumber, lifetime, {
       ttlNs: BigInt(ttlMs) * 1_000_000n // convert to nanoseconds
     })
-    
+
     // Marshal and publish (from ipns-publish.ts)
     console.log(`🔄 Publishing IPNS record to DHT...`);
     const marshaledRecord = marshalIPNSRecord(record)
     const routingKey = multihashToIPNSRoutingKey(keypair.publicKey.toMultihash())
-    
+
     await helia.routing.put(routingKey, marshaledRecord)
-    
+
     console.log(`✅ IPNS record published successfully`);
     console.log(`🌐 Access via: https://ipfs.io/ipns/${ipnsName}`);
-    
+
     return {
       success: true,
       ipnsName: ipnsName
     };
-    
+
   } catch (error) {
     console.error('❌ IPNS update failed:', error);
     return {
@@ -313,31 +313,31 @@ export function isIPNSConfiguredForEnvironmentConfig(environmentConfig: Environm
  * Upload to IPFS and update IPNS in one operation
  */
 export async function uploadAndUpdateIPNS(
-  config: Record<string, unknown>, 
+  config: Record<string, unknown>,
   environmentName: string,
   environmentConfig: EnvironmentConfig,
-  configStructure: ConfigStructure,
+
+  pinataJWT: string,
   uploadToIPFS: (config: Record<string, unknown>, env: string, pinataJWT?: string) => Promise<{ success: boolean; ipfsHash?: string; error?: string }>
 ): Promise<{ ipfsResult: { success: boolean; ipfsHash?: string; error?: string }; ipnsResult?: IPNSUpdateResult }> {
-  
-  // Get Pinata JWT from config._env
-  const pinataJWT = configStructure._env?.pinataJWT as string | undefined;
-  
+
+
+
   // First upload to IPFS
   const ipfsResult = await uploadToIPFS(config, environmentName, pinataJWT);
-  
+
   if (!ipfsResult.success || !ipfsResult.ipfsHash) {
     return { ipfsResult };
   }
-  
+
   // Then update IPNS if configured in the environment config
   const privateKey = getIPNSPrivateKeyFromConfig(environmentConfig);
   if (!privateKey) {
     console.log(`⚠️ No IPNS private key found in ${environmentName} config`);
     return { ipfsResult };
   }
-  
+
   const ipnsResult = await updateIPNSRecord(ipfsResult.ipfsHash, privateKey);
-  
+
   return { ipfsResult, ipnsResult };
 }

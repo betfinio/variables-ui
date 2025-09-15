@@ -9,6 +9,7 @@ import type { FetchedConfig } from '@/services/ipnsFetcher';
 import type { EnvironmentConfig, ConfigStructure } from '@/services/ipnsUpdater';
 
 interface ConfigTabsProps {
+  configEnvs: ConfigStructure["__env"];
   configStructure: ConfigStructure;
   fetchedConfigs: Record<string, FetchedConfig>;
   currentIPFSHashes: Record<string, string>;
@@ -26,6 +27,7 @@ interface ConfigTabsProps {
 
 export function ConfigTabs({
   configStructure,
+  configEnvs,
   fetchedConfigs,
   currentIPFSHashes,
   loading,
@@ -85,6 +87,7 @@ export function ConfigTabs({
         {Object.entries(configStructure).filter(([name]) => name !== '_env').map(([envName, envConfig]) => (
           <TabsContent key={envName} value={envName}>
                 <EnvironmentTab
+                  configEnvs={configEnvs}
                   environmentName={envName}
                   ipnsPublicKey={(envConfig as EnvironmentConfig).ipnsPublicKey}
                   environmentConfig={envConfig as EnvironmentConfig}
