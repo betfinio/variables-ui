@@ -79,7 +79,7 @@ export function validateConfigStructure(parsed: unknown): { valid: boolean; erro
   
   for (const [envName, envConfig] of Object.entries(config)) {
     // Skip _env section - it's for environment variables
-    if (envName === '_env') {
+    if (envName === '__env') {
       continue;
     }
     
