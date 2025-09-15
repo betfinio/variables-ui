@@ -195,13 +195,13 @@ export function EnvironmentTab({
               </Button>
               <Button 
                 onClick={handleUploadAndPublish}
-                disabled={uploading || !isPinataConfigured(configStructure._env?.pinataJWT as string) || (showRawJson && !rawJsonValue.trim())}
+                disabled={uploading || !isPinataConfigured(configEnvs.pinataJWT as string) || (showRawJson && !rawJsonValue.trim())}
                 size="sm"
                 className="w-full sm:w-auto"
-                title={!isPinataConfigured(configStructure._env?.pinataJWT as string) ? 'Add pinataJWT to _env section in config or create .env file with VITE_PINATA_JWT' : 'Upload to IPFS and publish via IPNS'}
+                title={!isPinataConfigured(configEnvs.pinataJWT as string) ? 'Add pinataJWT to _env section in config or create .env file with VITE_PINATA_JWT' : 'Upload to IPFS and publish via IPNS'}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {uploading ? 'Publishing...' : (isPinataConfigured(configStructure._env?.pinataJWT as string) ? 'Upload & Publish' : 'Configure Pinata')}
+                {uploading ? 'Publishing...' : (isPinataConfigured(configEnvs.pinataJWT as string) ? 'Upload & Publish' : 'Configure Pinata')}
               </Button>
             </div>
           </CardTitle>
@@ -250,7 +250,7 @@ export function EnvironmentTab({
               
               <div className="space-y-2">
                 {Object.entries(fetchedConfig || {}).map(([key, value]) => (
-                  <div key={key} className="grid grid-cols-1 md:grid-cols-[200px_1fr_120px] gap-3 items-center px-1">
+                  <div key={key} className="grid grid-cols-1 md:grid-cols-[320px_1fr_120px] gap-3 items-center px-1">
                     <Input
                       value={key}
                       onChange={(e) => {
@@ -348,12 +348,12 @@ export function EnvironmentTab({
                   {rawJsonValue.trim() && (
                     <Button 
                       onClick={handleUploadAndPublish}
-                      disabled={uploading || !isPinataConfigured(configStructure._env?.pinataJWT as string)}
+                      disabled={uploading || !isPinataConfigured(configEnvs.pinataJWT as string)}
                       size="sm"
-                      title={!isPinataConfigured(configStructure._env?.pinataJWT as string) ? 'Add pinataJWT to _env section in config or create .env file with VITE_PINATA_JWT' : 'Upload to IPFS and publish via IPNS'}
+                      title={!isPinataConfigured(configEnvs.pinataJWT as string) ? 'Add pinataJWT to _env section in config or create .env file with VITE_PINATA_JWT' : 'Upload to IPFS and publish via IPNS'}
                     >
                       <Upload className="h-4 w-4 mr-2" />
-                      {uploading ? 'Publishing...' : (isPinataConfigured(configStructure._env?.pinataJWT as string) ? 'Upload & Publish' : 'Configure Pinata')}
+                      {uploading ? 'Publishing...' : (isPinataConfigured(configEnvs.pinataJWT as string) ? 'Upload & Publish' : 'Configure Pinata')}
                     </Button>
                   )}
                 </div>

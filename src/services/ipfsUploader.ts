@@ -16,10 +16,10 @@ export interface UploadResult {
  * Get configured Pinata instance
  */
 function getPinataInstance(pinataJwt?: string) {
-  const jwt = pinataJwt || import.meta.env.VITE_PINATA_JWT;
-  
+  const jwt = pinataJwt
+
   if (!jwt) {
-    throw new Error('Pinata JWT is required - either from config._env.pinataJWT or VITE_PINATA_JWT environment variable');
+    throw new Error('Pinata JWT is required - either from config.__env.pinataJWT ');
   }
 
   return new PinataSDK({
@@ -32,29 +32,29 @@ function getPinataInstance(pinataJwt?: string) {
  * Upload configuration data to IPFS
  */
 export async function uploadConfigToIPFS(
-  config: FetchedConfig, 
+  config: FetchedConfig,
   environmentName: string,
   pinataJWT?: string
 ): Promise<UploadResult> {
   try {
     const pinataInstance = getPinataInstance(pinataJWT);
-    
+
     // Test authentication first
     await pinataInstance.testAuthentication();
-    
+
     // Create a File object with the JSON data and proper filename
     const jsonString = JSON.stringify(config, null, 2);
     const fileName = `${environmentName}`;
-    
+
     // Create File object with the specific filename (this is what controls the actual filename)
-    const file = new File([jsonString], fileName, { 
-      type: 'application/json' 
+    const file = new File([jsonString], fileName, {
+      type: 'application/json'
     });
-    
+
     // Upload using fileArray to preserve the filename
     const upload = await pinataInstance.upload.public.file(file, {
       metadata: {
-    
+
         name: fileName,
         keyvalues: {
           environment: environmentName,
@@ -80,7 +80,7 @@ export async function uploadConfigToIPFS(
  * Check if Pinata is configured (either via env or config)
  */
 export function isPinataConfigured(pinataJWT?: string): boolean {
-  return !!(pinataJWT || import.meta.env.VITE_PINATA_JWT);
+  return !!(pinataJWT);
 }
 
 /**
@@ -88,7 +88,7 @@ export function isPinataConfigured(pinataJWT?: string): boolean {
  */
 export function getUploadStatusMessage(environmentName: string): string {
   if (!isPinataConfigured()) {
-    return 'Pinata not configured. Please set VITE_PINATA_JWT environment variable.';
+    return 'Pinata not configured. Please set pinataJWT in config.__env.pinataJWT.';
   }
   return `Ready to upload ${environmentName} configuration to IPFS`;
 }
