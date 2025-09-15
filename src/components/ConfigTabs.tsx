@@ -6,10 +6,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Settings } from 'lucide-react';
 import { EnvironmentTab } from './EnvironmentTab';
 import type { FetchedConfig } from '@/services/ipnsFetcher';
-import type { EnvironmentConfig, ConfigStructure } from '@/services/ipnsUpdater';
+import type { EnvironmentConfig, ConfigStructure, ConfigStructureEnv } from '@/services/ipnsUpdater';
 
 interface ConfigTabsProps {
-  configEnvs: ConfigStructure["__env"];
+  configEnvs: ConfigStructureEnv["__env"];
   configStructure: ConfigStructure;
   fetchedConfigs: Record<string, FetchedConfig>;
   currentIPFSHashes: Record<string, string>;
@@ -84,7 +84,7 @@ export function ConfigTabs({
           </TabsList>
         </div>
 
-        {Object.entries(configStructure).filter(([name]) => name !== '_env').map(([envName, envConfig]) => (
+        {Object.entries(configStructure).map(([envName, envConfig]) => (
           <TabsContent key={envName} value={envName}>
                 <EnvironmentTab
                   configEnvs={configEnvs}

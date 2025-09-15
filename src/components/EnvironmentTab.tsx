@@ -9,10 +9,10 @@ import { Separator } from '@/components/ui/separator';
 import { Download, FileText, Upload, Save } from 'lucide-react';
 import type { FetchedConfig } from '@/services/ipnsFetcher';
 import { uploadConfigToIPFS, isPinataConfigured } from '@/services/ipfsUploader';
-import { uploadAndUpdateIPNS, type EnvironmentConfig, type ConfigStructure } from '@/services/ipnsUpdater';
+import { uploadAndUpdateIPNS, type EnvironmentConfig, type ConfigStructure, type ConfigStructureEnv } from '@/services/ipnsUpdater';
 
 interface EnvironmentTabProps {
-  configEnvs: ConfigStructure["__env"];
+  configEnvs: ConfigStructureEnv["__env"];
   environmentName: string;
   ipnsPublicKey: string;
   environmentConfig: EnvironmentConfig;
