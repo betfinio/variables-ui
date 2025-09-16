@@ -11,7 +11,7 @@ import type { EnvironmentConfig, ConfigStructure, ConfigStructureEnv } from '@/s
 interface ConfigTabsProps {
   configEnvs: ConfigStructureEnv["__env"];
   configStructure: ConfigStructure;
-  fetchedConfigs: Record<string, FetchedConfig>;
+  fetchedConfigs: Record<string, FetchedConfig[]>;
   currentIPFSHashes: Record<string, string>;
   loading: Record<string, boolean>;
   activeTab: string;
@@ -23,6 +23,7 @@ interface ConfigTabsProps {
   onAddKey: (environmentName: string, key: string, value: string) => void;
   onRemoveKey: (environmentName: string, key: string) => void;
   onReset: () => void;
+  onUpdateEntireConfig: (environmentName: string, config: FetchedConfig[]) => void;
 }
 
 export function ConfigTabs({
@@ -39,7 +40,8 @@ export function ConfigTabs({
   onUpdateKey,
   onAddKey,
   onRemoveKey,
-  onReset
+  onReset,
+  onUpdateEntireConfig
 }: ConfigTabsProps) {
   return (
     <div className="w-full space-y-6">
@@ -100,6 +102,7 @@ export function ConfigTabs({
                   onUpdateKey={(oldKey, newKey) => onUpdateKey(envName, oldKey, newKey)}
                   onAddKey={onAddKey}
                   onRemoveKey={onRemoveKey}
+                  onUpdateEntireConfig={(config) => onUpdateEntireConfig(envName, config)}
                 />
           </TabsContent>
         ))}

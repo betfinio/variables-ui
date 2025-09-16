@@ -5,7 +5,8 @@
  */
 
 export interface FetchedConfig {
-  [key: string]: unknown;
+  key: string;
+  value: string | FetchedConfig;
 }
 
 export interface FetchResult {
@@ -51,7 +52,6 @@ export async function fetchFromIPNS(ipnsKey: string): Promise<FetchResult> {
     }
 
     const data = await response.json();
-    console.log('IPFS Hash:', ipfsHash);
     return {
       success: true,
       data,

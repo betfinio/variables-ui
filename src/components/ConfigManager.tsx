@@ -10,7 +10,7 @@ export function ConfigManager() {
 
   const [configEnvs, setConfigEnvs] = useState<ConfigStructureEnv["__env"]>();
   const [configStructure, setConfigStructure] = useState<ConfigStructure | null>(null);
-  const [fetchedConfigs, setFetchedConfigs] = useState<Record<string, FetchedConfig>>({});
+  const [fetchedConfigs, setFetchedConfigs] = useState<Record<string, FetchedConfig[]>>({});
   const [currentIPFSHashes, setCurrentIPFSHashes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
@@ -36,11 +36,11 @@ export function ConfigManager() {
 
     const envNames = Object.keys(configWithoutEnd).map(name => name);
     const firstEnv = envNames[0];
-console.log(firstEnv,"firstEnv")
     if (firstEnv) {
       setActiveTab(firstEnv);
     }
   };
+
 
   // Fetch content from IPNS
   const handleFetch = async (environmentName: string, ipnsKey: string) => {
@@ -84,7 +84,7 @@ console.log(firstEnv,"firstEnv")
     if (result.success && result.data) {
       setFetchedConfigs(prev => ({
         ...prev,
-        [environmentName]: result.data ?? {}
+        [environmentName]: Object.entries(result.data ?? {}).map(([key, value]) => ({ key, value })) ?? []
       }));
 
       // Also store IPFS hash from gateway headers as fallback
@@ -103,12 +103,16 @@ console.log(firstEnv,"firstEnv")
 
   // Update a specific key-value pair
   const handleUpdateValue = (environmentName: string, key: string, value: string) => {
+
+
     setFetchedConfigs(prev => ({
       ...prev,
-      [environmentName]: {
-        ...prev[environmentName],
-        [key]: value
-      }
+      [environmentName]: prev[environmentName].map(item => {
+        if (item.key === key) {
+          return { ...item, value };
+        }
+        return item;
+      })
     }));
   };
 
@@ -117,14 +121,18 @@ console.log(firstEnv,"firstEnv")
     if (oldKey === newKey) return;
 
     setFetchedConfigs(prev => {
-      const config = { ...prev[environmentName] };
-      const value = config[oldKey];
-      delete config[oldKey];
-      config[newKey] = value;
+      const config = [...prev[environmentName]];
+      const updatedConfig = config.map(item => {
+
+        if (item.key === oldKey) {
+          return { ...item, key: newKey };
+        }
+        return item;
+      });
 
       return {
         ...prev,
-        [environmentName]: config
+        [environmentName]: updatedConfig
       };
     });
   };
@@ -135,21 +143,21 @@ console.log(firstEnv,"firstEnv")
 
     setFetchedConfigs(prev => ({
       ...prev,
-      [environmentName]: {
-        ...prev[environmentName] || {},
-        [key]: value
-      }
+      [environmentName]: [
+        ...prev[environmentName] || [],
+        { key, value }
+      ]
     }));
   };
 
   // Remove key-value pair
   const handleRemoveKey = (environmentName: string, key: string) => {
     setFetchedConfigs(prev => {
-      const newConfig = { ...prev[environmentName] };
-      delete newConfig[key];
+      const newConfig = [...prev[environmentName]];
+      const updatedConfig = newConfig.filter(item => item.key !== key);
       return {
         ...prev,
-        [environmentName]: newConfig
+        [environmentName]: updatedConfig
       };
     });
   };
@@ -161,6 +169,14 @@ console.log(firstEnv,"firstEnv")
     setCurrentIPFSHashes({});
     setError(null);
     setActiveTab('');
+  };
+
+
+  const handleUpdateEntireConfig = (environmentName: string, config: FetchedConfig[]) => {
+    setFetchedConfigs(prev => ({
+      ...prev,
+      [environmentName]: config
+    }));
   };
 
   if (!configStructure || !configEnvs) {
@@ -183,6 +199,7 @@ console.log(firstEnv,"firstEnv")
       onAddKey={handleAddKey}
       onRemoveKey={handleRemoveKey}
       onReset={handleReset}
+      onUpdateEntireConfig={handleUpdateEntireConfig}
     />
   );
 }

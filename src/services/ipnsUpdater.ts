@@ -68,7 +68,6 @@ export async function resolveIPNSFromPublicKey(
   ipnsPublicKey: string
 ): Promise<IPNSResolveResult> {
   try {
-    console.log(`🔍 Resolving IPNS record from public key: ${ipnsPublicKey}`);
 
     // Try multiple resolution methods using the public key directly
     // NOTE: Public key format (k51...) cannot be used with delegated routing API
@@ -76,7 +75,6 @@ export async function resolveIPNSFromPublicKey(
     const resolutionMethods = [
       // Method 1: Try fetching from gateway and check headers
       async () => {
-        console.log(`🔄 Trying gateway header resolution...`);
         const response = await fetch(`https://ipfs.io/ipns/${ipnsPublicKey}`, {
           method: 'HEAD'
         });
@@ -92,7 +90,6 @@ export async function resolveIPNSFromPublicKey(
 
       // Method 2: Try Cloudflare IPFS gateway
       async () => {
-        console.log(`🔄 Trying Cloudflare gateway resolution...`);
         const response = await fetch(`https://cloudflare-ipfs.com/ipns/${ipnsPublicKey}`, {
           method: 'HEAD'
         });
@@ -111,7 +108,6 @@ export async function resolveIPNSFromPublicKey(
     for (const method of resolutionMethods) {
       try {
         const ipfsHash = await method();
-        console.log(`✅ Resolved IPFS hash: ${ipfsHash}`);
         return {
           success: true,
           ipfsHash,
@@ -145,7 +141,6 @@ export async function resolveIPNSFromPrivateKey(
   privateKeyBase64: string
 ): Promise<IPNSResolveResult> {
   try {
-    console.log(`🔍 Resolving IPNS record from private key`);
 
     // Parse private key to get IPNS name
     const keypair = privateKeyFromProtobuf(uint8ArrayFromString(privateKeyBase64, 'base64'))
@@ -155,13 +150,11 @@ export async function resolveIPNSFromPrivateKey(
 
     // Get IPNS name
     const ipnsName = getIPNSNameFromKeypair(keypair)
-    console.log(`📝 IPNS Name: ${ipnsName}`);
 
     // Try multiple resolution methods
     const resolutionMethods = [
       // Method 1: Try fetching from gateway and check headers (most reliable)
       async () => {
-        console.log(`🔄 Trying gateway header resolution...`);
         const response = await fetch(`https://ipfs.io/ipns/${ipnsName}`, {
           method: 'HEAD' // Just get headers, don't download content
         });
@@ -177,7 +170,6 @@ export async function resolveIPNSFromPrivateKey(
 
       // Method 2: Try Cloudflare IPFS gateway
       async () => {
-        console.log(`🔄 Trying Cloudflare gateway resolution...`);
         const response = await fetch(`https://cloudflare-ipfs.com/ipns/${ipnsName}`, {
           method: 'HEAD'
         });
@@ -196,7 +188,6 @@ export async function resolveIPNSFromPrivateKey(
     for (const method of resolutionMethods) {
       try {
         const ipfsHash = await method();
-        console.log(`✅ Resolved IPFS hash: ${ipfsHash}`);
         return {
           success: true,
           ipfsHash,
@@ -233,7 +224,6 @@ export async function updateIPNSRecord(
   let helia: any
 
   try {
-    console.log(`🔄 Updating IPNS record for IPFS hash: ${ipfsHash}`);
 
 
 
@@ -253,7 +243,6 @@ export async function updateIPNSRecord(
     // Get IPNS name (from ipns-publish.ts)
     const ipnsName = getIPNSNameFromKeypair(keypair)
 
-    console.log(`📝 IPNS Name: ${ipnsName}`);
 
     // Use timestamp-based sequence number to ensure it's always incrementing (from ipns-publish.ts)
     const sequenceNumber = BigInt(Date.now())
@@ -262,20 +251,16 @@ export async function updateIPNSRecord(
     const lifetime = DEFAULT_LIFETIME_MS
 
     // Create IPNS record (from ipns-publish.ts)
-    console.log(`🔄 Creating IPNS record...`);
     const record = await createIPNSRecord(keypair, cid, sequenceNumber, lifetime, {
       ttlNs: BigInt(ttlMs) * 1_000_000n // convert to nanoseconds
     })
 
     // Marshal and publish (from ipns-publish.ts)
-    console.log(`🔄 Publishing IPNS record to DHT...`);
     const marshaledRecord = marshalIPNSRecord(record)
     const routingKey = multihashToIPNSRoutingKey(keypair.publicKey.toMultihash())
 
     await helia.routing.put(routingKey, marshaledRecord)
 
-    console.log(`✅ IPNS record published successfully`);
-    console.log(`🌐 Access via: https://ipfs.io/ipns/${ipnsName}`);
 
     return {
       success: true,
@@ -340,7 +325,6 @@ export async function uploadAndUpdateIPNS(
   // Then update IPNS if configured in the environment config
   const privateKey = getIPNSPrivateKeyFromConfig(environmentConfig);
   if (!privateKey) {
-    console.log(`⚠️ No IPNS private key found in ${environmentName} config`);
     return { ipfsResult };
   }
 

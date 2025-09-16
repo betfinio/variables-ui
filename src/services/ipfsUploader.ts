@@ -32,7 +32,7 @@ function getPinataInstance(pinataJwt?: string) {
  * Upload configuration data to IPFS
  */
 export async function uploadConfigToIPFS(
-  config: FetchedConfig,
+  config: Record<string, unknown>,
   environmentName: string,
   pinataJWT?: string
 ): Promise<UploadResult> {
@@ -80,7 +80,7 @@ export async function uploadConfigToIPFS(
  * Check if Pinata is configured (either via env or config)
  */
 export function isPinataConfigured(pinataJWT?: string): boolean {
-  return !!(pinataJWT);
+  return !!(pinataJWT || import.meta.env.VITE_PINATA_JWT);
 }
 
 /**
@@ -88,7 +88,7 @@ export function isPinataConfigured(pinataJWT?: string): boolean {
  */
 export function getUploadStatusMessage(environmentName: string): string {
   if (!isPinataConfigured()) {
-    return 'Pinata not configured. Please set pinataJWT in config.__env.pinataJWT.';
+    return 'Pinata not configured. Please set VITE_PINATA_JWT environment variable.';
   }
   return `Ready to upload ${environmentName} configuration to IPFS`;
 }

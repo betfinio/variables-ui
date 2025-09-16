@@ -17,7 +17,7 @@ interface EnvironmentTabProps {
   ipnsPublicKey: string;
   environmentConfig: EnvironmentConfig;
   configStructure: ConfigStructure;
-  fetchedConfig?: FetchedConfig;
+  fetchedConfig?: FetchedConfig[];
   currentIPFSHash?: string;
   loading: boolean;
   onFetch: () => void;
@@ -25,20 +25,23 @@ interface EnvironmentTabProps {
   onUpdateKey?: (oldKey: string, newKey: string) => void;
   onAddKey: (environmentName: string, key: string, value: string) => void;
   onRemoveKey: (environmentName: string, key: string) => void;
+  onUpdateEntireConfig: (config: FetchedConfig[]) => void;
 }
 
-export function EnvironmentTab({ 
+export function EnvironmentTab({
   configEnvs,
-  environmentName, 
-  ipnsPublicKey, 
+  environmentName,
+  ipnsPublicKey,
   environmentConfig,
-  configStructure,
-  fetchedConfig, 
+  fetchedConfig,
   currentIPFSHash,
-  loading, 
+  loading,
   onFetch,
   onAddKey,
-  onRemoveKey
+  onRemoveKey,
+  onUpdateKey,
+  onUpdateEntireConfig,
+  onUpdateValue
 }: EnvironmentTabProps) {
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
@@ -59,57 +62,37 @@ export function EnvironmentTab({
   // Update raw JSON when fetchedConfig changes
   React.useEffect(() => {
     if (fetchedConfig) {
-      setRawJsonValue(JSON.stringify(fetchedConfig, null, 2));
+      const fetchedConfigJson = JSON.stringify(fetchedConfig.reduce((acc, item) => {
+        acc[item.key as string] = item.value as string;
+        return acc;
+      }, {} as Record<string, unknown>), null, 2);
+
+      setRawJsonValue(fetchedConfigJson);
     } else if (!rawJsonValue) {
       // Initialize with empty object if no config and no existing value
-      setRawJsonValue('{\n  \n}');
+      setRawJsonValue('');
     }
   }, [fetchedConfig]);
 
-  // Auto-parse JSON and update inputs when rawJsonValue changes (if it's valid JSON)
-  React.useEffect(() => {
-    if (!showRawJson) return; // Only auto-parse when JSON view is visible
-    
-    try {
-      const parsed = JSON.parse(rawJsonValue);
-      
-      // Only auto-update if it's different from current fetchedConfig
-      const currentJson = fetchedConfig ? JSON.stringify(fetchedConfig) : '{}';
-      const newJson = JSON.stringify(parsed);
-      
-      if (currentJson !== newJson) {
-        // Clear existing config
-        if (fetchedConfig) {
-          Object.keys(fetchedConfig).forEach(k => onRemoveKey(environmentName, k));
-        }
-        
-        // Add new config
-        Object.entries(parsed).forEach(([k, v]) => {
-          onAddKey(environmentName, k, String(v));
-        });
-      }
-    } catch (error) {
-      // Ignore JSON parse errors during typing - only show error on manual save
-    }
-  }, [rawJsonValue, showRawJson, fetchedConfig, environmentName, onAddKey, onRemoveKey]);
+
 
   // Handle raw JSON save (local only)
   const handleSaveRawJson = () => {
     try {
       const parsed = JSON.parse(rawJsonValue);
-      
+
       // Clear existing config and add new config locally
       if (fetchedConfig) {
         Object.keys(fetchedConfig).forEach(k => onRemoveKey(environmentName, k));
       }
-      
+
       Object.entries(parsed).forEach(([k, v]) => {
         onAddKey(environmentName, k, String(v));
       });
 
       // Show local save confirmation
       setUploadResult('✅ Changes saved locally!');
-      
+
     } catch (error) {
       alert(`Invalid JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -121,7 +104,11 @@ export function EnvironmentTab({
 
     // If we have fetchedConfig, use it; otherwise parse from rawJsonValue
     if (fetchedConfig) {
-      configToUpload = fetchedConfig;
+      configToUpload = fetchedConfig.reduce((acc, item) => {
+
+        acc[item.key as string] = item.value as string;
+        return acc;
+      }, {} as Record<string, unknown>);
     } else {
       try {
         configToUpload = JSON.parse(rawJsonValue);
@@ -134,18 +121,18 @@ export function EnvironmentTab({
     setUploading(true);
     setUploadResult(null);
 
-        try {
-          const { ipfsResult, ipnsResult } = await uploadAndUpdateIPNS(
-            configToUpload, 
-            environmentName,
-            environmentConfig,
-            configEnvs.pinataJWT,
-            uploadConfigToIPFS
-          );
-      
+    try {
+      const { ipfsResult, ipnsResult } = await uploadAndUpdateIPNS(
+        configToUpload,
+        environmentName,
+        environmentConfig,
+        configEnvs.pinataJWT,
+        uploadConfigToIPFS
+      );
+
       if (ipfsResult.success && ipfsResult.ipfsHash) {
         let message = `✅ Uploaded to IPFS! Hash: ${ipfsResult.ipfsHash}`;
-        
+
         if (ipnsResult) {
           if (ipnsResult.success && ipnsResult.ipnsName) {
             message += `\n🔗 IPNS Updated! Name: ${ipnsResult.ipnsName}`;
@@ -156,7 +143,7 @@ export function EnvironmentTab({
         } else {
           message += `\n⚠️ No IPNS private key found - IPFS upload only`;
         }
-        
+
         setUploadResult(message);
       } else {
         setUploadResult(`❌ Upload failed: ${ipfsResult.error}`);
@@ -168,6 +155,36 @@ export function EnvironmentTab({
     }
   };
 
+
+  const handleUpdateJson = (json: string) => {
+
+    try {
+
+      const parsedJson = JSON.parse(json);
+      const nextFetchedConfig = Object.entries(parsedJson).map(([k, v]) => ({ key: k, value: v as string }));
+
+      onUpdateEntireConfig(nextFetchedConfig);
+    } catch (error) {
+      console.error("Error updating JSON", error);
+    }
+  };
+
+  const handleSetShowRawJson = () => {
+    setShowRawJson((prev) => {
+
+      const nextValue = !prev
+
+      if (!nextValue) {
+        handleUpdateJson(rawJsonValue);
+      }
+      return nextValue;
+    });
+
+  };
+
+
+
+
   return (
     <div className="space-y-6">
       <Card>
@@ -175,8 +192,8 @@ export function EnvironmentTab({
           <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <span className="text-lg font-semibold">{environmentName} Environment</span>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                onClick={onFetch} 
+              <Button
+                onClick={onFetch}
                 disabled={loading}
                 size="sm"
                 className="w-full sm:w-auto"
@@ -184,16 +201,16 @@ export function EnvironmentTab({
                 <Download className="h-4 w-4 mr-2" />
                 {loading ? 'Fetching...' : 'Fetch from IPNS'}
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
-                onClick={() => setShowRawJson(!showRawJson)}
+                onClick={handleSetShowRawJson}
                 className="w-full sm:w-auto"
               >
                 <FileText className="h-4 w-4 mr-2" />
                 {showRawJson ? 'Hide' : 'Show'} JSON
               </Button>
-              <Button 
+              <Button
                 onClick={handleUploadAndPublish}
                 disabled={uploading || !isPinataConfigured(configEnvs.pinataJWT as string) || (showRawJson && !rawJsonValue.trim())}
                 size="sm"
@@ -242,72 +259,85 @@ export function EnvironmentTab({
           {(fetchedConfig || showRawJson) && !showRawJson && (
             <div className="space-y-4">
               {/* Header */}
-              <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_120px] gap-3 px-1">
+              <div className="grid grid-cols-1 md:grid-cols-[300px_1fr_120px] gap-3 px-1">
                 <Label className="text-sm font-medium text-muted-foreground">Key</Label>
                 <Label className="text-sm font-medium text-muted-foreground">Value</Label>
                 <Label className="text-sm font-medium text-muted-foreground">Actions</Label>
               </div>
-              
+
               <div className="space-y-2">
-                {Object.entries(fetchedConfig || {}).map(([key, value]) => (
-                  <div key={key} className="grid grid-cols-1 md:grid-cols-[320px_1fr_120px] gap-3 items-center px-1">
-                    <Input
-                      value={key}
-                      onChange={(e) => {
-                        const newKey = e.target.value;
-                        if (newKey !== key && newKey.trim()) {
-                          // Remove old key and add new one with same value
-                          const value = fetchedConfig?.[key];
-                          onRemoveKey(environmentName, key);
-                          onAddKey(environmentName, newKey, String(value));
-                        }
-                      }}
-                      className="font-mono text-sm"
-                      placeholder="Key name"
-                    />
-                    <Input
-                      value={String(value)}
-                      onChange={(e) => {
-                        // Remove old key and add new one with updated value
-                        onRemoveKey(environmentName, key);
-                        onAddKey(environmentName, key, e.target.value);
-                      }}
-                      className="font-mono text-sm"
-                      style={{
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden'
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.textOverflow = 'clip';
-                        e.target.style.whiteSpace = 'normal';
-                        e.target.style.overflow = 'visible';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.textOverflow = 'ellipsis';
-                        e.target.style.whiteSpace = 'nowrap';
-                        e.target.style.overflow = 'hidden';
-                      }}
-                      placeholder="Value"
-                      title={String(value)} // Show full value on hover
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onRemoveKey(environmentName, key)}
-                      className="w-full"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
+                {fetchedConfig?.map((configField, index) => {
+
+
+                  let value = configField.value;
+
+                  // Only try to parse if it's actually a string
+                  if (typeof configField.value === 'string' &&configField.value.includes('{')) {
+                    try {
+                      value = JSON.parse(configField.value);
+
+                    } catch (error) {
+                      console.log("error", error)
+                    }
+                  } else {
+                    // It's already an object/array/primitive, no need to parse
+                    value = JSON.stringify(configField.value);
+                  }
+
+                  return (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-[320px_1fr_120px] gap-3 items-center px-1">
+                      <Input
+                        value={configField.key}
+                        onChange={(e) => {
+                          const newKey = e.target.value;
+
+                          if (newKey !== configField.key && newKey.trim()) {
+
+
+                            onUpdateKey?.(configField.key, newKey);
+                          }
+                        }}
+                        className="font-mono text-sm truncate"
+                        placeholder="Key name"
+                      />
+                      <Input
+                        value={String(value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+
+                          try {
+                            const parsedValue = JSON.parse(value);
+
+
+
+                            onUpdateValue?.(configField.key, parsedValue);
+                          } catch (error) {
+                            onUpdateValue?.(configField.key, value);
+                          }
+                        }}
+                        className="font-mono text-sm truncate"
+
+
+                        placeholder="Value"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onRemoveKey(environmentName, configField.key)}
+                        className="w-full"
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  )
+                })}
               </div>
 
               <Separator />
 
               <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-3">
                 <Label className="text-sm font-medium mb-3 block">Add New Key-Value Pair</Label>
-                <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_80px] gap-3 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-[300px_1fr_120px] gap-3 items-center">
                   <Input
                     placeholder="Enter key name"
                     value={newKey}
@@ -320,8 +350,8 @@ export function EnvironmentTab({
                     onChange={(e) => setNewValue(e.target.value)}
                     className="font-mono text-sm"
                   />
-                  <Button 
-                    onClick={handleAddKey} 
+                  <Button
+                    onClick={handleAddKey}
                     disabled={!newKey.trim() || !newValue.trim()}
                     className="w-full"
                   >
@@ -337,7 +367,7 @@ export function EnvironmentTab({
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">Raw JSON</Label>
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     onClick={handleSaveRawJson}
                     size="sm"
                     variant="outline"
@@ -346,7 +376,7 @@ export function EnvironmentTab({
                     Save Changes
                   </Button>
                   {rawJsonValue.trim() && (
-                    <Button 
+                    <Button
                       onClick={handleUploadAndPublish}
                       disabled={uploading || !isPinataConfigured(configEnvs.pinataJWT as string)}
                       size="sm"
