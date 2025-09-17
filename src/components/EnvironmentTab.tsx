@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Download, FileText, Upload, Save } from 'lucide-react';
 import type { FetchedConfig } from '@/services/ipnsFetcher';
-import { uploadConfigToIPFS, isPinataConfigured } from '@/services/ipfsUploader';
+import { uploadConfigToIPFS, isQuickNodeConfigured } from '@/services/ipfsUploader';
 import { uploadAndUpdateIPNS, type EnvironmentConfig, type ConfigStructure, type ConfigStructureEnv } from '@/services/ipnsUpdater';
 
 interface EnvironmentTabProps {
@@ -126,7 +126,7 @@ export function EnvironmentTab({
         configToUpload,
         environmentName,
         environmentConfig,
-        configEnvs.pinataJWT,
+        configEnvs.quickNodeApiKey as string,
         uploadConfigToIPFS
       );
 
@@ -212,13 +212,13 @@ export function EnvironmentTab({
               </Button>
               <Button
                 onClick={handleUploadAndPublish}
-                disabled={uploading || !isPinataConfigured(configEnvs.pinataJWT as string) || (showRawJson && !rawJsonValue.trim())}
+                disabled={uploading || !isQuickNodeConfigured(configEnvs.quickNodeApiKey as string) || (showRawJson && !rawJsonValue.trim())}
                 size="sm"
                 className="w-full sm:w-auto"
-                title={!isPinataConfigured(configEnvs.pinataJWT as string) ? 'Add pinataJWT to _env section in config or create .env file with VITE_PINATA_JWT' : 'Upload to IPFS and publish via IPNS'}
+                title={!isQuickNodeConfigured(configEnvs.quickNodeApiKey as string) ? 'Add quickNodeApiKey to _env section in config or create .env file with VITE_QUICKNODE_API_KEY' : 'Upload to IPFS and publish via IPNS'}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                {uploading ? 'Publishing...' : (isPinataConfigured(configEnvs.pinataJWT as string) ? 'Upload & Publish' : 'Configure Pinata')}
+                {uploading ? 'Publishing...' : (isQuickNodeConfigured(configEnvs.quickNodeApiKey as string) ? 'Upload & Publish' : 'Configure QuickNode')}
               </Button>
             </div>
           </CardTitle>
@@ -378,12 +378,12 @@ export function EnvironmentTab({
                   {rawJsonValue.trim() && (
                     <Button
                       onClick={handleUploadAndPublish}
-                      disabled={uploading || !isPinataConfigured(configEnvs.pinataJWT as string)}
+                      disabled={uploading || !isQuickNodeConfigured(configEnvs.quickNodeApiKey as string)}
                       size="sm"
-                      title={!isPinataConfigured(configEnvs.pinataJWT as string) ? 'Add pinataJWT to _env section in config or create .env file with VITE_PINATA_JWT' : 'Upload to IPFS and publish via IPNS'}
+                      title={!isQuickNodeConfigured(configEnvs.quickNodeApiKey as string) ? 'Add quickNodeApiKey to _env section in config or create .env file with VITE_QUICKNODE_API_KEY' : 'Upload to IPFS and publish via IPNS'}
                     >
                       <Upload className="h-4 w-4 mr-2" />
-                      {uploading ? 'Publishing...' : (isPinataConfigured(configEnvs.pinataJWT as string) ? 'Upload & Publish' : 'Configure Pinata')}
+                      {uploading ? 'Publishing...' : (isQuickNodeConfigured(configEnvs.quickNodeApiKey as string) ? 'Upload & Publish' : 'Configure QuickNode')}
                     </Button>
                   )}
                 </div>

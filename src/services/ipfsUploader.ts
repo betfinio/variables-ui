@@ -1,10 +1,8 @@
 /**
  * IPFS Upload Service
- * Handles uploading configuration data to IPFS via Pinata
+ * Handles uploading configuration data to IPFS via QuickNode
  */
 
-import { PinataSDK } from "pinata";
-import type { FetchedConfig } from './ipnsFetcher';
 
 export interface UploadResult {
   success: boolean;
@@ -13,60 +11,70 @@ export interface UploadResult {
 }
 
 /**
- * Get configured Pinata instance
+ * Get QuickNode API key from config or environment
  */
-function getPinataInstance(pinataJwt?: string) {
-  const jwt = pinataJwt
+function getQuickNodeApiKey(apiKey?: string): string {
+  const key = apiKey;
 
-  if (!jwt) {
-    throw new Error('Pinata JWT is required - either from config.__env.pinataJWT ');
+  if (!key) {
+    throw new Error('QuickNode API key is required - either from config.__env.quickNodeApiKey');
   }
 
-  return new PinataSDK({
-    pinataJwt: jwt,
-    pinataGateway: "https://gateway.pinata.cloud"
-  });
+  return key;
 }
 
 /**
- * Upload configuration data to IPFS
+ * Upload configuration data to IPFS via QuickNode
  */
 export async function uploadConfigToIPFS(
   config: Record<string, unknown>,
   environmentName: string,
-  pinataJWT?: string
+  quickNodeApiKey?: string
 ): Promise<UploadResult> {
   try {
-    const pinataInstance = getPinataInstance(pinataJWT);
+    const apiKey = getQuickNodeApiKey(quickNodeApiKey);
 
-    // Test authentication first
-    await pinataInstance.testAuthentication();
-
-    // Create a File object with the JSON data and proper filename
+    // Create JSON string from config
     const jsonString = JSON.stringify(config, null, 2);
-    const fileName = `${environmentName}`;
+    const fileName = `env-${environmentName}.json`;
 
-    // Create File object with the specific filename (this is what controls the actual filename)
-    const file = new File([jsonString], fileName, {
-      type: 'application/json'
+    // Create FormData for QuickNode API
+    const formData = new FormData();
+    
+    // Create Blob from JSON string
+    const jsonBlob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Append to FormData using QuickNode format
+    formData.append("Body", jsonBlob, fileName);
+    formData.append("Key", fileName);
+    formData.append("ContentType", "application/json");
+
+    // Upload to QuickNode
+    const response = await fetch("https://api.quicknode.com/ipfs/rest/v1/s3/put-object", {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey
+      },
+      body: formData
     });
 
-    // Upload using fileArray to preserve the filename
-    const upload = await pinataInstance.upload.public.file(file, {
-      metadata: {
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`QuickNode upload failed: ${response.status} - ${errorText}`);
+    }
 
-        name: fileName,
-        keyvalues: {
-          environment: environmentName,
-          type: 'configuration',
-          timestamp: new Date().toISOString()
-        }
-      }
-    });
+    const result = await response.json();
+    
+    // Extract CID from QuickNode response
+    const ipfsHash = result.pin?.cid || result.cid || result.hash;
+    
+    if (!ipfsHash) {
+      throw new Error('No IPFS hash returned from QuickNode');
+    }
 
     return {
       success: true,
-      ipfsHash: upload.cid
+      ipfsHash: ipfsHash
     };
   } catch (error) {
     return {
@@ -77,18 +85,20 @@ export async function uploadConfigToIPFS(
 }
 
 /**
- * Check if Pinata is configured (either via env or config)
+ * Check if QuickNode is configured (either via env or config)
  */
-export function isPinataConfigured(pinataJWT?: string): boolean {
-  return !!(pinataJWT || import.meta.env.VITE_PINATA_JWT);
+export function isQuickNodeConfigured(quickNodeApiKey?: string): boolean {
+  return !!(quickNodeApiKey);
 }
 
 /**
  * Get upload status message
  */
 export function getUploadStatusMessage(environmentName: string): string {
-  if (!isPinataConfigured()) {
-    return 'Pinata not configured. Please set VITE_PINATA_JWT environment variable.';
+  if (!isQuickNodeConfigured()) {
+    return 'QuickNode not configured. Please set quickNodeApiKey in _env section in config';
   }
-  return `Ready to upload ${environmentName} configuration to IPFS`;
+  return `Ready to upload ${environmentName} configuration to IPFS via QuickNode`;
 }
+
+

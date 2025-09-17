@@ -36,7 +36,7 @@ export type ConfigStructureWithEnv = ConfigStructureEnv & ConfigStructure;
 
 export interface ConfigStructureEnv {
   __env: {
-    pinataJWT: string;
+    quickNodeApiKey: string;
     [key: string]: unknown;
   };
 }
@@ -44,7 +44,7 @@ export interface ConfigStructureEnv {
 export interface ConfigStructure {
 
   [environmentName: string]: EnvironmentConfig | {
-    pinataJWT?: string;
+    quickNodeApiKey?: string;
     [key: string]: unknown;
   };
 }
@@ -309,14 +309,14 @@ export async function uploadAndUpdateIPNS(
   environmentName: string,
   environmentConfig: EnvironmentConfig,
 
-  pinataJWT: string,
-  uploadToIPFS: (config: Record<string, unknown>, env: string, pinataJWT?: string) => Promise<{ success: boolean; ipfsHash?: string; error?: string }>
+  quickNodeApiKey: string,
+  uploadToIPFS: (config: Record<string, unknown>, env: string, quickNodeApiKey?: string) => Promise<{ success: boolean; ipfsHash?: string; error?: string }>
 ): Promise<{ ipfsResult: { success: boolean; ipfsHash?: string; error?: string }; ipnsResult?: IPNSUpdateResult }> {
 
 
 
   // First upload to IPFS
-  const ipfsResult = await uploadToIPFS(config, environmentName, pinataJWT);
+  const ipfsResult = await uploadToIPFS(config, environmentName, quickNodeApiKey);
 
   if (!ipfsResult.success || !ipfsResult.ipfsHash) {
     return { ipfsResult };
